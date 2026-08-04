@@ -1,0 +1,32 @@
+class Reasoner:
+    """
+    The reasoning engine decides HOW a goal should be solved.
+    """
+
+    def analyze(self, goal):
+        plan = {
+            "goal": goal.target,
+            "steps": []
+        }
+
+        if goal.intent == "build":
+            plan["steps"] = [
+                "Analyze requirements",
+                "Choose technology",
+                "Generate project structure",
+                "Generate source code",
+                "Test application"
+            ]
+
+        elif goal.intent == "research":
+            plan["steps"] = [
+                "Collect information",
+                "Summarize findings"
+            ]
+
+        else:
+            plan["steps"] = [
+                "Handle generic request"
+            ]
+
+        return plan

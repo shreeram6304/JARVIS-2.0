@@ -1,0 +1,8 @@
+{
+    "gemini_api_key": "your_gemini_api_key_here",
+    "os_system": "windows",
+    "assistant_name": "JARVIS",
+    "user_name": "sriram",
+    "ui_color": "#00d4ff",
+    "camera_index": 0
+}

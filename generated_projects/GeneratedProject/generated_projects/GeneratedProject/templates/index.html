@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Professional Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Calculator Card -->
+        <main class="calculator-card">
+            <!-- Header Controls -->
+            <header class="calculator-header">
+                <div class="app-title">
+                    <span class="logo-icon">f(x)</span>
+                    <h1>Calculator</h1>
+                </div>
+                <div class="header-actions">
+                    <button id="modeToggleBtn" class="icon-btn" title="Toggle Scientific Mode">
+                        <span class="mode-label">SCI</span>
+                    </button>
+                    <button id="themeToggleBtn" class="icon-btn" title="Toggle Theme">
+                        <svg class="sun-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.02-.39-1.41 0z"/></svg>
+                    </button>
+                    <button id="historyToggleBtn" class="icon-btn" title="Toggle History">
+                        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Calculator Display -->
+            <div class="display-container">
+                <div id="expressionDisplay" class="expression-display"></div>
+                <div id="resultDisplay" class="result-display">0</div>
+                <div id="errorMessage" class="error-toast"></div>
+            </div>
+
+            <!-- Keypad Area -->
+            <div id="calculatorKeypad" class="keypad standard-mode">
+                <!-- Scientific Function Row / Panel -->
+                <div class="scientific-panel">
+                    <button class="btn btn-func" data-action="func" data-value="sin(">sin</button>
+                    <button class="btn btn-func" data-action="func" data-value="cos(">cos</button>
+                    <button class="btn btn-func" data-action="func" data-value="tan(">tan</button>
+                    <button class="btn btn-func" data-action="func" data-value="sqrt(">√</button>
+                    <button class="btn btn-func" data-action="func" data-value="log(">log</button>
+                    <button class="btn btn-func" data-action="func" data-value="ln(">ln</button>
+                    <button class="btn btn-func" data-action="input" data-value="^">x^y</button>
+                    <button class="btn btn-func" data-action="func" data-value="factorial(">x!</button>
+                    <button class="btn btn-func" data-action="input" data-value="pi">π</button>
+                    <button class="btn btn-func" data-action="input" data-value="e">e</button>
+                    <button class="btn btn-func" data-action="input" data-value="(">(</button>
+                    <button class="btn btn-func" data-action="input" data-value=")">)</button>
+                </div>
+
+                <!-- Main Standard Grid -->
+                <div class="standard-panel">
+                    <button class="btn btn-action btn-danger" data-action="clear">AC</button>
+                    <button class="btn btn-action" data-action="backspace">⌫</button>
+                    <button class="btn btn-operator" data-action="input" data-value="%">%</button>
+                    <button class="btn btn-operator" data-action="input" data-value="/">÷</button>
+
+                    <button class="btn btn-num" data-action="input" data-value="7">7</button>
+                    <button class="btn btn-num" data-action="input" data-value="8">8</button>
+                    <button class="btn btn-num" data-action="input" data-value="9">9</button>
+                    <button class="btn btn-operator" data-action="input" data-value="*">×</button>
+
+                    <button class="btn btn-num" data-action="input" data-value="4">4</button>
+                    <button class="btn btn-num" data-action="input" data-value="5">5</button>
+                    <button class="btn btn-num" data-action="input" data-value="6">6</button>
+                    <button class="btn btn-operator" data-action="input" data-value="-">−</button>
+
+                    <button class="btn btn-num" data-action="input" data-value="1">1</button>
+                    <button class="btn btn-num" data-action="input" data-value="2">2</button>
+                    <button class="btn btn-num" data-action="input" data-value="3">3</button>
+                    <button class="btn btn-operator" data-action="input" data-value="+">+</button>
+
+                    <button class="btn btn-num btn-zero" data-action="input" data-value="0">0</button>
+                    <button class="btn btn-num" data-action="input" data-value=".">.</button>
+                    <button class="btn btn-equals" data-action="calculate">=</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Sidebar / Drawer for Calculation History -->
+        <aside id="historyDrawer" class="history-drawer">
+            <div class="history-header">
+                <h3>Calculation History</h3>
+                <div class="history-actions">
+                    <button id="clearHistoryBtn" class="text-btn" title="Clear All History">Clear</button>
+                    <button id="closeHistoryBtn" class="icon-btn" title="Close Panel">✕</button>
+                </div>
+            </div>
+            <div id="historyList" class="history-list">
+                <div class="empty-history">No history yet</div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
