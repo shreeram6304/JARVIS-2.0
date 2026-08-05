@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -21,18 +22,23 @@ API_CONFIG_PATH = BASE_DIR / "config" / "api_keys.json"
 
 class GeminiProvider(LLMProvider):
     """
-    Google Gemini implementation with automatic retry support.
+    Google Gemini implementation with retry support.
     """
 
-    def __init__(self):
+    DEFAULT_MODEL = "gemini-flash-latest"
 
-        with open(API_CONFIG_PATH, "r", encoding="utf-8") as f:
-            api_key = json.load(f)["gemini_api_key"]
+    def __init__(self, model=None):
+
+        api_key = os.getenv("GEMINI_API_KEY")
+
+        if not api_key:
+
+            with open(API_CONFIG_PATH, "r", encoding="utf-8") as f:
+                api_key = json.load(f)["gemini_api_key"]
 
         self.client = genai.Client(api_key=api_key)
 
-        # Centralize model selection here
-        self.model = "gemini-flash-latest"
+        self.model = model or self.DEFAULT_MODEL
 
     def generate(self, prompt: str):
 
@@ -42,15 +48,17 @@ class GeminiProvider(LLMProvider):
 
             try:
 
-                print(f"[Gemini] Generating... (Attempt {attempt + 1}/{max_attempts})")
+                print(
+                    f"[Gemini] Generating... "
+                    f"(Attempt {attempt + 1}/{max_attempts})"
+                )
 
                 response = self.client.models.generate_content(
                     model=self.model,
                     contents=prompt,
                 )
 
-                # Safely return text
-                if hasattr(response, "text") and response.text:
+                if getattr(response, "text", None):
                     return response.text
 
                 return str(response)
@@ -61,15 +69,14 @@ class GeminiProvider(LLMProvider):
 
                 print(f"[Gemini] Error: {message}")
 
-                # Retry on temporary failures
-                if (
-                    "429" in message
-                    or "RESOURCE_EXHAUSTED" in message
-                    or "503" in message
-                    or "UNAVAILABLE" in message
-                ):
+                if any(code in message for code in (
+                    "429",
+                    "RESOURCE_EXHAUSTED",
+                    "503",
+                    "UNAVAILABLE",
+                )):
 
-                    wait = 2 ** attempt
+                    wait = min(2 ** attempt, 30)
 
                     print(f"[Gemini] Retrying in {wait} second(s)...")
 
@@ -77,12 +84,10 @@ class GeminiProvider(LLMProvider):
 
                     continue
 
-                # Non-retryable error
                 raise
 
-            except Exception as e:
+            except Exception:
 
-                print(f"[Gemini] Unexpected Error: {e}")
                 raise
 
         raise RuntimeError(

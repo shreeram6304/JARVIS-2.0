@@ -1,59 +1,59 @@
-# JARVIS Web Calculator Suite
+# OmniCalc - Advanced Web Calculator & Unit Converter
 
-A modern, production-grade, responsive Web-based Calculator built with Flask, AST Math Evaluation, Unit Conversion, and persistent SQLite history tracking.
+OmniCalc is a modern, high-performance web-based scientific calculator and multi-category unit converter built with Python Flask and vanilla JavaScript.
 
 ## Features
 
-- **Standard & Scientific Calculator**: Full support for algebraic expressions, trigonometric functions (`sin`, `cos`, `tan`), logarithms, exponents, powers, factorials, and constants (`π`, `e`).
-- **Safe Math Evaluation Engine**: Safe AST (Abstract Syntax Tree) parsing engine prevents code injection risks associated with Python's native `eval()`.
-- **Unit Converter**: Multi-category conversion supporting Length, Mass/Weight, Temperature, Area, Volume, Speed, and Digital Storage units.
-- **Calculation History**: Automatic real-time persistence of previous calculations in an SQLite database.
-- **Interactive UI**: Supports dark & light mode toggles, DEG/RAD angle modes, full physical keyboard input support, memory controls (MC, MR, M+, M-, MS), and a mobile-friendly responsive design.
+- **Standard & Scientific Calculator Modes**: Basic arithmetic, trigonometric functions, logarithms, roots, factorials, and mathematical constants ($\pi$, $e$).
+- **Safe AST Math Engine**: Backend evaluation powered by Python's Abstract Syntax Tree (`ast`) parser, avoiding dangerous dynamic code execution while offering precise mathematical computation.
+- **Unit Converter**: Converts units across Length, Mass, Temperature, and Digital Storage categories.
+- **Calculation History**: Automatic tracking of calculations with clear/restore capabilities.
+- **Keyboard Support**: Full physical keyboard support including shortcuts (`Enter` for calculate, `Backspace` for delete, `Escape` for clear).
+- **Responsive & Modern Design**: Dark-mode primary UI with glassmorphism CSS, smooth animations, and optimized touch/click layouts for desktop and mobile.
 
 ## Project Structure
 
 ```
-calculator_app/
-├── app.py                  # Main Flask Web Application & API endpoints
-├── calculator/
+.
+├── app.py                   # Flask server application and API endpoints
+├── calculator/              # Core business logic module
 │   ├── __init__.py
-│   ├── engine.py           # AST-based Safe Math Parser & Scientific Evaluator
-│   ├── converters.py       # Physical & Digital Unit Conversion Engine
-│   └── history.py          # SQLite Calculation History Manager
-├── templates/
-│   └── index.html          # HTML5 UI Layout
+│   ├── converter.py         # Unit conversion algorithms
+│   ├── evaluator.py         # Safe AST-based expression evaluator
+│   └── history.py           # History storage manager
+├── requirements.txt         # Python dependencies
 ├── static/
 │   ├── css/
-│   │   └── style.css       # Custom Glassmorphism UI Styles
+│   │   └── style.css        # App styling and CSS variables
 │   └── js/
-│       └── calculator.js    # Client-side Interactive Application Logic
-├── requirements.txt        # Python Dependencies
-└── README.md               # Documentation
+│       └── calculator.js    # Client-side state, key bindings, and API bridge
+└── templates/
+    └── index.html           # Main Single Page Application HTML markup
 ```
 
-## Quick Start & Installation
+## Setup & Running
 
-1. **Clone or Extract the Project Directory**:
-   Ensure Python 3.8+ is installed on your system.
+### Prerequisites
 
-2. **Install Dependencies**:
+- Python 3.9+ installed.
+
+### Installation
+
+1. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Run the Application**:
+2. Run the development server:
    ```bash
    python app.py
    ```
 
-4. **Access the Website**:
-   Open your browser and navigate to `http://127.0.0.1:5000`.
+3. Open your browser and navigate to `http://127.0.0.1:5000`.
 
-## Key Keyboard Shortcuts
+### Production Deployment
 
-- `0-9` : Number inputs
-- `+`, `-`, `*`, `/`, `^` : Mathematical operators
-- `Enter` or `=` : Evaluate calculation
-- `Backspace` : Delete last character
-- `Escape` : Clear display
-- `(` and `)` : Parentheses for order of operations
+Run using `gunicorn`:
+```bash
+gunicorn app:app
+```

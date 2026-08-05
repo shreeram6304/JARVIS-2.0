@@ -1,111 +1,85 @@
-import os
-import sqlite3
 from flask import Flask, render_template, request, jsonify
-from calculator.engine import MathEngine
-from calculator.converters import UnitConverter
-from calculator.history import HistoryManager
+from calculator import MathEvaluator, UnitConverter, HistoryManager
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'jarvis-calculator-secret-key-2025')
+history_store = HistoryManager(max_items=50)
 
-# Initialize core modules
-engine = MathEngine()
-converter = UnitConverter()
-history_db = os.path.join(app.instance_path, 'calculator_history.db')
-
-# Ensure instance folder exists
-os.makedirs(app.instance_path, exist_ok=True)
-
-history_mgr = HistoryManager(db_path=history_db)
-
-@app.route('/')
+@app.route("/")
 def index():
-    """Render the main calculator interface."""
-    return render_template('index.html')
+    """Renders the single page application calculator UI."""
+    return render_template("index.html")
 
-@app.route('/api/calculate', methods=['POST'])
+@app.route("/api/calculate", methods=["POST"])
 def calculate():
-    """API endpoint to evaluate mathematical expressions."""
+    """Endpoint for evaluating mathematical expressions."""
     data = request.get_json() or {}
-    expression = data.get('expression', '')
-    angle_mode = data.get('angle_mode', 'DEG')
+    expression = data.get("expression", "")
 
-    if not expression or not isinstance(expression, str):
-        return jsonify({'status': 'error', 'message': 'Expression is required'}), 400
+    if not expression:
+        return jsonify({"success": False, "error": "No expression provided."}), 400
 
-    if angle_mode not in ('DEG', 'RAD'):
-        angle_mode = 'DEG'
-
-    result_data = engine.evaluate(expression, angle_mode=angle_mode)
-
-    if result_data['status'] == 'success':
-        # Save to history
-        history_mgr.add_entry(
-            expression=expression,
-            result=result_data['result'],
-            calc_type='scientific' if result_data.get('is_scientific') else 'standard'
-        )
-        return jsonify({
-            'status': 'success',
-            'expression': expression,
-            'result': result_data['result'],
-            'formatted_result': result_data['formatted_result']
-        })
-    else:
-        return jsonify({
-            'status': 'error',
-            'message': result_data['message']
-        }), 400
-
-@app.route('/api/convert', methods=['POST'])
-def convert():
-    """API endpoint for unit conversion."""
-    data = request.get_json() or {}
-    category = data.get('category', '')
-    from_unit = data.get('from_unit', '')
-    to_unit = data.get('to_unit', '')
     try:
-        value = float(data.get('value', 0))
-    except (ValueError, TypeError):
-        return jsonify({'status': 'error', 'message': 'Invalid numeric value'}), 400
+        result = MathEvaluator.evaluate(expression)
+        
+        # Format floating numbers nicely
+        if isinstance(result, float):
+            result = round(result, 10)
+            if result.is_integer():
+                result = int(result)
 
-    result = converter.convert(category, from_unit, to_unit, value)
+        entry = history_store.add_entry(expression, result)
+        return jsonify({
+            "success": True,
+            "expression": expression,
+            "result": result,
+            "history_item": entry
+        })
+    except (ValueError, ZeroDivisionError) as err:
+        return jsonify({"success": False, "error": str(err)}), 400
+    except Exception:
+        return jsonify({"success": False, "error": "An unexpected error occurred."}), 500
+
+@app.route("/api/convert", methods=["POST"])
+def convert():
+    """Endpoint for converting physical units."""
+    data = request.get_json() or {}
+    category = data.get("category", "")
+    value = data.get("value", 0)
+    from_unit = data.get("from_unit", "")
+    to_unit = data.get("to_unit", "")
+
+    try:
+        num_value = float(value)
+        converted_value = UnitConverter.convert(category, num_value, from_unit, to_unit)
+        rounded_result = round(converted_value, 8)
+        if rounded_result.is_integer():
+            rounded_result = int(rounded_result)
+
+        return jsonify({
+            "success": True,
+            "result": rounded_result,
+            "category": category,
+            "from_unit": from_unit,
+            "to_unit": to_unit
+        })
+    except ValueError as err:
+        return jsonify({"success": False, "error": str(err)}), 400
+    except Exception:
+        return jsonify({"success": False, "error": "Unit conversion failed."}), 500
+
+@app.route("/api/units", methods=["GET"])
+def get_units():
+    """Endpoint returning available conversion units."""
+    return jsonify({"success": True, "units": UnitConverter.get_supported_units()})
+
+@app.route("/api/history", methods=["GET", "DELETE"])
+def handle_history():
+    """Endpoint for retrieving or clearing history."""
+    if request.method == "DELETE":
+        history_store.clear()
+        return jsonify({"success": True, "message": "History cleared."})
     
-    if result['status'] == 'success':
-        # Record conversion in history
-        expr_str = f"{value} {from_unit} to {to_unit}"
-        res_str = f"{result['result']} {to_unit}"
-        history_mgr.add_entry(expression=expr_str, result=res_str, calc_type='converter')
-        return jsonify(result)
-    else:
-        return jsonify(result), 400
+    return jsonify({"success": True, "history": history_store.get_all()})
 
-@app.route('/api/converter/units', methods=['GET'])
-def get_converter_units():
-    """Retrieve available unit conversion categories and units."""
-    return jsonify({
-        'status': 'success',
-        'categories': converter.get_supported_units()
-    })
-
-@app.route('/api/history', methods=['GET'])
-def get_history():
-    """Fetch recent calculation history."""
-    limit = request.args.get('limit', default=30, type=int)
-    history = history_mgr.get_history(limit=limit)
-    return jsonify({
-        'status': 'success',
-        'history': history
-    })
-
-@app.route('/api/history', methods=['DELETE'])
-def clear_history():
-    """Clear calculation history."""
-    history_mgr.clear_history()
-    return jsonify({
-        'status': 'success',
-        'message': 'History cleared successfully'
-    })
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)

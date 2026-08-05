@@ -1,4 +1,4 @@
-from llm.gemini_provider import GeminiProvider
+from llm.model_router import ModelRouter
 from llm.prompts import DEVELOPER_SYSTEM_PROMPT
 
 
@@ -8,7 +8,9 @@ class DeveloperBrain:
     """
 
     def __init__(self):
-        self.llm = GeminiProvider()
+
+        self.router = ModelRouter()
+        self.llm = self.router.get("coding")
 
     def build_prompt(self, goal, plan):
 

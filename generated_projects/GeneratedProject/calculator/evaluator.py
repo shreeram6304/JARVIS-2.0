@@ -1,153 +1,118 @@
 import ast
 import math
 import operator
+from typing import Union, Dict, Any, Callable
 
-class SafeEvaluator:
+class MathEvaluator:
     """
-    Safely parses and evaluates mathematical expressions using AST (Abstract Syntax Tree).
-    Prevents security vulnerabilities associated with raw eval().
+    Safely parses and evaluates mathematical expressions using Python AST.
     """
-
-    OPERATORS = {
+    
+    # Allowed operators
+    OPERATORS: Dict[type, Callable[..., Any]] = {
         ast.Add: operator.add,
         ast.Sub: operator.sub,
         ast.Mult: operator.mul,
         ast.Div: operator.truediv,
-        ast.FloorDiv: operator.floordiv,
         ast.Mod: operator.mod,
         ast.Pow: operator.pow,
         ast.USub: operator.neg,
         ast.UAdd: operator.pos,
     }
 
-    FUNCTIONS = {
-        'sin': math.sin,
-        'cos': math.cos,
-        'tan': math.tan,
-        'asin': math.asin,
-        'acos': math.acos,
-        'atan': math.atan,
-        'sinh': math.sinh,
-        'cosh': math.cosh,
-        'tanh': math.tanh,
-        'sqrt': math.sqrt,
-        'cbrt': lambda x: math.pow(x, 1/3) if x >= 0 else -math.pow(-x, 1/3),
-        'log': math.log10,
-        'log10': math.log10,
-        'log2': math.log2,
-        'ln': math.log,
-        'exp': math.exp,
-        'abs': abs,
-        'fact': math.factorial,
-        'factorial': math.factorial,
-        'rad': math.radians,
-        'deg': math.degrees,
+    # Allowed functions
+    FUNCTIONS: Dict[str, Callable[..., Any]] = {
+        "sin": lambda x: math.sin(math.radians(x)),
+        "cos": lambda x: math.cos(math.radians(x)),
+        "tan": lambda x: math.tan(math.radians(x)),
+        "asin": lambda x: math.degrees(math.asin(x)),
+        "acos": lambda x: math.degrees(math.acos(x)),
+        "atan": lambda x: math.degrees(math.atan(x)),
+        "sqrt": math.sqrt,
+        "log": math.log10,
+        "ln": math.log,
+        "abs": abs,
+        "fact": lambda x: math.factorial(int(x)),
+        "exp": math.exp,
     }
 
-    CONSTANTS = {
-        'pi': math.pi,
-        'PI': math.pi,
-        'e': math.e,
-        'E': math.e,
-        'tau': math.tau,
-        'phi': (1 + math.sqrt(5)) / 2,
+    # Allowed constants
+    CONSTANTS: Dict[str, float] = {
+        "pi": math.pi,
+        "e": math.e,
+        "TAU": math.tau,
     }
 
-    def __init__(self, angle_mode='deg'):
-        self.angle_mode = angle_mode.lower()
-
-    def evaluate(self, expression: str):
+    @classmethod
+    def evaluate(cls, expression: str) -> Union[int, float]:
+        """
+        Evaluates a string math expression safely.
+        Raises ValueError or ZeroDivisionError on invalid syntax/math errors.
+        """
         if not expression or not expression.strip():
-            raise ValueError("Expression is empty")
+            raise ValueError("Expression is empty.")
 
-        expr = self._preprocess(expression)
+        # Replace user friendly symbols
+        cleaned_expr = (
+            expression.replace("×", "*")
+            .replace("÷", "/")
+            .replace("π", "pi")
+            .replace("^", "**")
+            .strip()
+        )
 
         try:
-            tree = ast.parse(expr, mode='eval')
-            result = self._eval_node(tree.body)
-            
-            if isinstance(result, complex):
-                raise ValueError("Complex numbers are not supported")
-                
-            return result
-        except SyntaxError:
-            raise ValueError("Invalid syntax in expression")
+            tree = ast.parse(cleaned_expr, mode="eval")
+            return cls._eval_node(tree.body)
+        except SyntaxError as e:
+            raise ValueError("Invalid mathematical syntax.") from e
+        except ZeroDivisionError:
+            raise ZeroDivisionError("Division by zero is undefined.")
+        except Exception as e:
+            raise ValueError(str(e)) from e
 
-    def _preprocess(self, expr: str) -> str:
-        # Replace mathematical symbols with Python equivalents
-        expr = expr.replace('×', '*').replace('÷', '/')
-        expr = expr.replace('^', '**')
-        expr = expr.replace('π', 'pi')
-        expr = expr.replace('√', 'sqrt')
-        
-        # Handle implied multiplication like 2pi or 5(3+2)
-        # Replacing simple patterns
-        cleaned = []
-        i = 0
-        while i < len(expr):
-            cleaned.append(expr[i])
-            if i < len(expr) - 1:
-                curr, nxt = expr[i], expr[i+1]
-                if (curr.isdigit() and (nxt.isalpha() or nxt == '(')) or (curr == ')' and (nxt.isdigit() or nxt.isalpha() or nxt == '(')):
-                    cleaned.append('*')
-            i += 1
-            
-        return "".join(cleaned)
-
-    def _eval_node(self, node):
-        if isinstance(node, ast.Constant):
+    @classmethod
+    def _eval_node(cls, node: ast.AST) -> Union[int, float]:
+        if isinstance(node, ast.Constant):  # Numbers
             if isinstance(node.value, (int, float)):
                 return node.value
-            raise ValueError("Only numbers are supported")
+            raise ValueError(f"Unsupported constant type: {type(node.value)}")
 
-        elif isinstance(node, ast.Name):
-            if node.id in self.CONSTANTS:
-                return self.CONSTANTS[node.id]
-            raise ValueError(f"Unknown variable or constant: '{node.id}'")
+        elif isinstance(node, ast.Name):  # Constants like pi, e
+            if node.id in cls.CONSTANTS:
+                return cls.CONSTANTS[node.id]
+            raise ValueError(f"Unknown variable: {node.id}")
 
-        elif isinstance(node, ast.UnaryOp):
+        elif isinstance(node, ast.BinOp):  # Binary operations (+, -, *, /, ^, %)
+            left = cls._eval_node(node.left)
+            right = cls._eval_node(node.right)
             op_type = type(node.op)
-            if op_type in self.OPERATORS:
-                operand = self._eval_node(node.operand)
-                return self.OPERATORS[op_type](operand)
-            raise ValueError("Unsupported unary operator")
-
-        elif isinstance(node, ast.BinOp):
-            op_type = type(node.op)
-            if op_type in self.OPERATORS:
-                left = self._eval_node(node.left)
-                right = self._eval_node(node.right)
-                
+            
+            if op_type in cls.OPERATORS:
                 if op_type == ast.Div and right == 0:
-                    raise ZeroDivisionError("Division by zero")
-                if op_type == ast.Pow and abs(right) > 1000:
-                    raise ValueError("Exponent too large")
-                    
-                return self.OPERATORS[op_type](left, right)
-            raise ValueError("Unsupported binary operator")
+                    raise ZeroDivisionError("Division by zero.")
+                if op_type == ast.Pow and abs(left) > 1000 and right > 100:
+                    raise ValueError("Overflow error in exponentiation.")
+                return cls.OPERATORS[op_type](left, right)
+            raise ValueError(f"Unsupported operator: {op_type.__name__}")
 
-        elif isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Name):
-                func_name = node.func.id.lower()
-                if func_name in self.FUNCTIONS:
-                    args = [self._eval_node(arg) for arg in node.args]
-                    if not args:
-                        raise ValueError(f"Function '{func_name}' requires parameters")
+        elif isinstance(node, ast.UnaryOp):  # Unary operations (-x, +x)
+            operand = cls._eval_node(node.operand)
+            op_type = type(node.op)
+            if op_type in cls.OPERATORS:
+                return cls.OPERATORS[op_type](operand)
+            raise ValueError(f"Unsupported unary operator: {op_type.__name__}")
 
-                    # Handle trigonometric mode conversions
-                    if func_name in ('sin', 'cos', 'tan'):
-                        if self.angle_mode == 'deg':
-                            args[0] = math.radians(args[0])
-                        res = self.FUNCTIONS[func_name](*args)
-                        return res
-                    elif func_name in ('asin', 'acos', 'atan'):
-                        res = self.FUNCTIONS[func_name](*args)
-                        if self.angle_mode == 'deg':
-                            res = math.degrees(res)
-                        return res
+        elif isinstance(node, ast.Call):  # Function calls (sin(x), sqrt(x))
+            if not isinstance(node.func, ast.Name):
+                raise ValueError("Invalid function call signature.")
+            
+            func_name = node.func.id
+            if func_name not in cls.FUNCTIONS:
+                raise ValueError(f"Function '{func_name}' is not supported.")
 
-                    return self.FUNCTIONS[func_name](*args)
-            raise ValueError("Unsupported function call")
+            args = [cls._eval_node(arg) for arg in node.args]
+            return cls.FUNCTIONS[func_name](*args)
 
         else:
-            raise ValueError("Invalid expression element")
+            raise ValueError(f"Unsupported expression structure: {type(node).__name__}")

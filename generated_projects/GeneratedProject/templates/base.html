@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniCalc - Production Engineering Suite</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <span class="logo-text">OmniCalc</span>
+            </div>
+            <nav class="nav-tabs">
+                <button class="tab-btn active" data-tab="standard">Standard</button>
+                <button class="tab-btn" data-tab="scientific">Scientific</button>
+                <button class="tab-btn" data-tab="financial">Financial</button>
+                <button class="tab-btn" data-tab="converter">Converter</button>
+            </nav>
+        </header>
+
+        <main class="app-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/calculator.js') }}"></script>
+</body>
+</html>
